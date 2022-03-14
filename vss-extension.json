@@ -1,7 +1,7 @@
 {
     "manifestVersion": 1,
     "id": "build-overview-widget",
-    "version": "1.0",
+    "version": "1.0.1",
     "name": "Build Overview Widget",
     "description": "A dashboard widget to display a project's 7 day build overview pie chart.",
     "publisher": "agebase",

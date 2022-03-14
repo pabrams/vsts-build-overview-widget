@@ -1,0 +1,23 @@
+{
+  "name": "vsts-build-overview-widget",
+  "version": "1.0.1",
+  "description": "A VSTS dashboard widget to display a project's 7 day build overview pie chart. The widget will look at all build configurations in a project. Not just one. Other than that, there's not a great deal else to say really. Always wanted to display the build pie chart on a project's home page on the dashboard? Then this dashboard widget is for you.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cloudtransformer/vsts-build-overview-widget.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cloudtransformer/vsts-build-overview-widget/issues"
+  },
+  "homepage": "https://github.com/cloudtransformer/vsts-build-overview-widget#readme",
+  "dependencies": {
+    "vss-web-extension-sdk": "^5.141.0"
+  }
+}
