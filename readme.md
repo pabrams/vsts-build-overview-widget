@@ -1,4 +1,4 @@
-A VSTS dashboard widget to display a project's 7 day build overview pie chart. The widget will look at all build configurations in a project. Not just one. Other than that, there's not a great deal else to say really. Always wanted to display the build pie chart on a project's home page on the dashboard? Then this dashboard widget is for you.
+A dashboard widget to show build metrics. The widget will look at all build configurations in a project.
 
 ![Image of Build Overview dashboard widget](https://agebase.co.uk/media/fqzllwmw/build-overview.png)
 
