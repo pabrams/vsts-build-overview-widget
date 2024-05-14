@@ -1,7 +1,7 @@
 {
     "manifestVersion": 1,
     "id": "build-metrics-widget",
-    "version": "1.0.2",
+    "version": "1.0.7",
     "name": "Build Overview Widget",
     "description": "A dashboard widget to show build metrics.",
     "publisher": "paulabrams1",

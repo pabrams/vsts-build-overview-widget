@@ -27,76 +27,140 @@
         explicitNotifyLoaded: true,
         usePlatformStyles: true
     });
+    /**
+     * Gets a list of definitions.
+     *
+     * @param {string} project - Project ID or project name
+     * @param {string} name - If specified, filters to definitions whose names match this pattern.
+     * @param {string} repositoryId - A repository ID. If specified, filters to definitions that use this repository.
+     * @param {string} repositoryType - If specified, filters to definitions that have a repository of this type.
+     * @param {Contracts.DefinitionQueryOrder} queryOrder - Indicates the order in which definitions should be returned.
+     * @param {number} top - The maximum number of definitions to return.
+     * @param {string} continuationToken - A continuation token, returned by a previous call to this method, that can be used to return the next set of definitions.
+     * @param {Date} minMetricsTime - If specified, indicates the date from which metrics should be included.
+     * @param {number[]} definitionIds - A comma-delimited list that specifies the IDs of definitions to retrieve.
+     * @param {string} path - If specified, filters to definitions under this folder.
+     * @param {Date} builtAfter - If specified, filters to definitions that have builds after this date.
+     * @param {Date} notBuiltAfter - If specified, filters to definitions that do not have builds after this date.
+     * @param {boolean} includeAllProperties - Indicates whether the full definitions should be returned. By default, shallow representations of the definitions are returned.
+     * @param {boolean} includeLatestBuilds - Indicates whether to return the latest and latest completed builds for this definition.
+     * @param {string} taskIdFilter - If specified, filters to definitions that use the specified task.
+     * @return IPromise<Contracts.BuildDefinitionReference[]>
+     * getDefinitions(project?: string, name?: string, repositoryId?: string, repositoryType?: string, queryOrder?: Contracts.DefinitionQueryOrder, top?: number, continuationToken?: string, minMetricsTime?: Date, definitionIds?: number[], path?: string, builtAfter?: Date, notBuiltAfter?: Date, includeAllProperties?: boolean, includeLatestBuilds?: boolean, taskIdFilter?: string): IPromise<Contracts.BuildDefinitionReference[]>;
+    
+     */
 
+         /**
+     * Gets a list of builds.
+     *
+     * @param {string} project - Project ID or project name
+     * @param {number[]} definitions - A comma-delimited list of definition IDs. If specified, filters to builds for these definitions.
+     * @param {number[]} queues - A comma-delimited list of queue IDs. If specified, filters to builds that ran against these queues.
+     * @param {string} buildNumber - If specified, filters to builds that match this build number. Append * to do a prefix search.
+     * @param {Date} minTime - If specified, filters to builds that finished/started/queued after this date based on the queryOrder specified.
+     * @param {Date} maxTime - If specified, filters to builds that finished/started/queued before this date based on the queryOrder specified.
+     * @param {string} requestedFor - If specified, filters to builds requested for the specified user.
+     * @param {Contracts.BuildReason} reasonFilter - If specified, filters to builds that match this reason.
+     * @param {Contracts.BuildStatus} statusFilter - If specified, filters to builds that match this status.
+     * @param {Contracts.BuildResult} resultFilter - If specified, filters to builds that match this result.
+     * @param {string[]} tagFilters - A comma-delimited list of tags. If specified, filters to builds that have the specified tags.
+     * @param {string[]} properties - A comma-delimited list of properties to retrieve.
+     * @param {number} top - The maximum number of builds to return.
+     * @param {string} continuationToken - A continuation token, returned by a previous call to this method, that can be used to return the next set of builds.
+     * @param {number} maxBuildsPerDefinition - The maximum number of builds to return per definition.
+     * @param {Contracts.QueryDeletedOption} deletedFilter - Indicates whether to exclude, include, or only return deleted builds.
+     * @param {Contracts.BuildQueryOrder} queryOrder - The order in which builds should be returned.
+     * @param {string} branchName - If specified, filters to builds that built branches that built this branch.
+     * @param {number[]} buildIds - A comma-delimited list that specifies the IDs of builds to retrieve.
+     * @param {string} repositoryId - If specified, filters to builds that built from this repository.
+     * @param {string} repositoryType - If specified, filters to builds that built from repositories of this type.
+     * @return IPromise<Contracts.Build[]>
+     *  getBuilds(project?: string, definitions?: number[], queues?: number[], buildNumber?: string, minTime?: Date, maxTime?: Date, requestedFor?: string, reasonFilter?: Contracts.BuildReason, statusFilter?: Contracts.BuildStatus, resultFilter?: Contracts.BuildResult, tagFilters?: string[], properties?: string[], top?: number, continuationToken?: string, maxBuildsPerDefinition?: number, deletedFilter?: Contracts.QueryDeletedOption, queryOrder?: Contracts.BuildQueryOrder, branchName?: string, buildIds?: number[], repositoryId?: string, repositoryType?: string): IPromise<Contracts.Build[]>;
+     */
     VSS.require(["TFS/Dashboards/WidgetHelpers", "TFS/Build/RestClient", "Charts/Services"],
         function (WidgetHelpers, TFS_Build_WebApi, TFS_Charts) {
+            console.log("Widget helpers");
             WidgetHelpers.IncludeWidgetStyles();
             VSS.register("paulabrams1.build-metrics-widget", function () {
+                console.log("registered widget");
                 var getChart = function () {
-
                     var projectId = VSS.getWebContext().project.id;
-
-                    var sevenDaysAgo = new Date();
-                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-                    return TFS_Build_WebApi.getClient().getBuilds(projectId, null, null, null, sevenDaysAgo).then(
-                        function (builds) {
-                            return TFS_Charts.ChartsService.getService().then(
-                                function (chartService) {
-
-                                    var succeededCount = 0;
-                                    var failedCount = 0;
-
-                                    builds.forEach(function (build) {
-                                        if (build.result === 2) {
-                                            succeededCount = succeededCount + 1;
-                                        } else {
-                                            failedCount = failedCount + 1;
-                                        }
-                                    });
-
-                                    var percentage = (succeededCount / builds.length * 100);
-
-                                    $("#status").text(Math.round(percentage) + "% succeeded")
-
-                                    var $container = $('#Chart-Container');
-                                    var chartOptions = {
-                                        "chartType": "pie",
-                                        "hostOptions": {
-                                            "height": 120,
-                                            "width:": 120
-                                        },
-                                        "suppressMargin": true,
-                                        "legend": {
-                                            "enabled": false
-                                        },
-                                        "tooltip": {
-                                            "enabled": false
-                                        },
-                                        "specializedOptions": {
-                                            "showLabels": false,
-                                            "center": [46, 32]
-                                        },
-                                        "series": [{
-                                            "data": [{
-                                                    "name": "Failed",
-                                                    "color": "#E02D30",
-                                                    "y": failedCount
-                                                },
-                                                {
-                                                    "name": "Succeeded",
-                                                    "color": "#357924",
-                                                    "y": succeededCount
+                    var thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    return TFS_Build_WebApi.getClient().getDefinitions(
+                        projectId, 
+                        null, 
+                        null, 
+                        null, 
+                        null, 
+                        null, 
+                        null, 
+                        null, 
+                        null, 
+                        "\\application\\build"
+                    ).then(
+                        function(definitions) {
+                            var defIds = definitions.map(a => a.id);
+                            console.log("DefIds:", defIds);
+                            return TFS_Build_WebApi.getClient().getBuilds(projectId, defIds, null, null, thirtyDaysAgo).then(
+                                function (builds) {
+                                    console.log("builds:", builds);
+                                    return TFS_Charts.ChartsService.getService().then(
+                                        function (chartService) {
+                                            var succeededCount = 0;
+                                            var failedCount = 0;
+                                            builds.forEach(function (build) {
+                                                if (build.result === 2) {
+                                                    succeededCount = succeededCount + 1;
+                                                } else {
+                                                    failedCount = failedCount + 1;
                                                 }
-                                            ]
-                                        }]
-                                    };
-                                    chartService.createChart($container, chartOptions);
-                                    return WidgetHelpers.WidgetStatusHelper.Success();
-                                });
-                        },
-                        function (error) {
-                            return WidgetHelpers.WidgetStatusHelper.Failure(error.message);
+                                            });
+
+                                            var percentage = (succeededCount / builds.length * 100);
+
+                                            $("#status").text(Math.round(percentage) + "% succeeded")
+
+                                            var $container = $('#Chart-Container');
+                                            var chartOptions = {
+                                                "chartType": "pie",
+                                                "hostOptions": {
+                                                    "height": 120,
+                                                    "width:": 120
+                                                },
+                                                "suppressMargin": true,
+                                                "legend": {
+                                                    "enabled": false
+                                                },
+                                                "tooltip": {
+                                                    "enabled": false
+                                                },
+                                                "specializedOptions": {
+                                                    "showLabels": false,
+                                                    "center": [46, 32]
+                                                },
+                                                "series": [{
+                                                    "data": [{
+                                                            "name": "Failed",
+                                                            "color": "#E02D30",
+                                                            "y": failedCount
+                                                        },
+                                                        {
+                                                            "name": "Succeeded",
+                                                            "color": "#357924",
+                                                            "y": succeededCount
+                                                        }
+                                                    ]
+                                                }]
+                                            };
+                                            chartService.createChart($container, chartOptions);
+                                            return WidgetHelpers.WidgetStatusHelper.Success();
+                                        });
+                                },
+                                function (error) {
+                                    return WidgetHelpers.WidgetStatusHelper.Failure(error.message);
+                                }
+                            );
                         }
                     );
                 }
