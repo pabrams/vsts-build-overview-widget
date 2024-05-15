@@ -117,8 +117,9 @@
                                     };
                                     console.log("chartOptions ", chartOptions);
                                     console.log("creating chart...");
-    
-                                    var $container = $('#Chart-Container');
+                                    $('h2.title').text(settings.buildPath);
+                                    $container = $('#Chart-Container');
+                                    $container.empty();
                                     chartService.createChart($container, chartOptions);
                                     return WidgetHelpers.WidgetStatusHelper.Success();
                                 }); // end of getChartsService

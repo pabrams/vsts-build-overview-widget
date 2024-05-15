@@ -1,7 +1,7 @@
 {
     "manifestVersion": 1,
     "id": "build-metrics-widget-extension",
-    "version": "1.0.29",
+    "version": "1.0.30",
     "name": "Build Metrics Widget",
     "description": "A configurable dashboard widget to show build metrics.",
     "publisher": "paulabrams1",
