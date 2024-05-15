@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="scripts/VSS.SDK.min.js"></script>
+    <style>
+        #status {
+            position: absolute;
+            bottom: 10px;
+            font-size: 0.70em;
+            left: 0;
+            right: 0;
+            text-align: center;
+        };
+        #Chart-Container {
+            background-color: lightyellow;
+        }
+    </style>
+    <script type="text/javascript">
+        VSS.init({
+            explicitNotifyLoaded: true,
+            usePlatformStyles: true
+        });
+        VSS.require(["TFS/Dashboards/WidgetHelpers", "TFS/Build/RestClient", "Charts/Services"],
+            function (WidgetHelpers, TFS_Build_WebApi, TFS_Charts) {
+                WidgetHelpers.IncludeWidgetStyles();
+                VSS.register("widgetChart", function () {
+                    var getChart = function (widgetSettings) {
+                        console.log("getting chart.");
+                        console.log("widget settings: ", widgetSettings);
+                        console.log("widgetSettings.customSettings", widgetSettings.customSettings);
+                        var settings = JSON.parse(widgetSettings.customSettings.data);
+                        console.log("settings ", settings);
+                        if (!settings || !settings.buildPath) {
+                            var $container = $('#Chart-Container');
+                            $container.empty();
+                            $container.text("Please configure a build path.");
+                            return WidgetHelpers.WidgetStatusHelper.Success();
+                        }
+                        var projectId = VSS.getWebContext().project.id;
+                        console.log("projectId", projectId);
+                        return TFS_Build_WebApi.getClient().getDefinitions(
+                            projectId, 
+                            null, 
+                            null, 
+                            null, 
+                            null, 
+                            null, 
+                            null, 
+                            null, 
+                            null, 
+                            settings.buildPath
+                        ).then(function(definitions) {
+                            var defIds = definitions.map(a => a.id);
+                            console.log("DefIds:", defIds);
+                            var thirtyDaysAgo = new Date();
+                            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                            return TFS_Build_WebApi.getClient().getBuilds(
+                                projectId, 
+                                defIds, 
+                                null, 
+                                null, 
+                                thirtyDaysAgo
+                            ).then(function (builds) {
+                                console.log("builds:", builds);
+                                return TFS_Charts.ChartsService.getService().then(function (chartService) {
+                                    var succeededCount = 0;
+                                    var failedCount = 0;
+                                    var count = 0;
+                                    builds.forEach(function (build) {
+                                        count++;
+                                        console.log("build count " + count + " id " + build.id + " result " + build.result );
+                                        if (build.result === 2) {
+                                            succeededCount = succeededCount + 1;
+                                        } 
+                                        else {
+                                            failedCount = failedCount + 1;
+                                        }
+                                    });
+                                    console.log("succeeded: " + succeededCount);
+                                    console.log("failed: " + failedCount);
+                                    console.log("number of builds: " + builds.length);
+                                    var percentage = (succeededCount / builds.length * 100);
+                                    console.log("percentage: " + percentage);
+                                    $("#status").text(Math.round(percentage) + "% succeeded")
+
+                                    var chartOptions = {
+                                        "chartType": "pie",
+                                        "hostOptions": {
+                                            "height": 120,
+                                            "width:": 120
+                                        },
+                                        "suppressMargin": true,
+                                        "legend": {
+                                            "enabled": false
+                                        },
+                                        "tooltip": {
+                                            "enabled": false
+                                        },
+                                        "specializedOptions": {
+                                            "showLabels": false,
+                                            "center": [46, 32]
+                                        },
+                                        "series": [{
+                                            "data": [{
+                                                    "name": "Failed",
+                                                    "color": "#E02D30",
+                                                    "y": failedCount
+                                                },
+                                                {
+                                                    "name": "Succeeded",
+                                                    "color": "#357924",
+                                                    "y": succeededCount
+                                                }
+                                            ]
+                                        }]
+                                    };
+                                    console.log("chartOptions ", chartOptions);
+                                    console.log("creating chart...");
+    
+                                    var $container = $('#Chart-Container');
+                                    chartService.createChart($container, chartOptions);
+                                    return WidgetHelpers.WidgetStatusHelper.Success();
+                                }); // end of getChartsService
+                            },
+                            function (error) {
+                                return WidgetHelpers.WidgetStatusHelper.Failure(error.message);
+                            });
+                        }); // end of getDefinitions
+                    } // end of getChart function
+                    return {
+                        load: function (widgetSettings) {
+                            var $title = $('h2.title');
+                            $title.text('Build Metrics');
+                            console.log("load completing");
+                            return getChart(widgetSettings);
+                        },
+                        reload: function (widgetSettings) {
+                            console.log("reload completing")
+                            return getChart(widgetSettings);
+                        }
+                    }
+                });
+                VSS.notifyLoadSucceeded();
+            });
+    </script>
+</head>
+
+<body>
+    <div class="widget">
+        <h2 class="title"></h2>
+        <div id="status"></div>
+        <div id="Chart-Container"></div>
+    </div>
+</body>
+</html>

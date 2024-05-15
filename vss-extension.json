@@ -1,18 +1,18 @@
 {
     "manifestVersion": 1,
-    "id": "build-metrics-widget",
-    "version": "1.0.7",
-    "name": "Build Overview Widget",
-    "description": "A dashboard widget to show build metrics.",
+    "id": "build-metrics-widget-extension",
+    "version": "1.0.28",
+    "name": "Build Metrics Widget",
+    "description": "A configurable dashboard widget to show build metrics.",
     "publisher": "paulabrams1",
     "public": false,
     "targets": [
         {
             "id": "Microsoft.VisualStudio.Services"
-            }
-        ],
+        }
+    ],
     "icons": {
-        "default": "images/icon.png"
+        "default": "images/bar-chart-128.png"
     },
     "demands": [
         "contribution/ms.vss-dashboards-web.widget-sdk-version-2", 
@@ -20,18 +20,18 @@
     ],
     "contributions": [
         {
-            "id": "paulabrams1.build-metrics-widget",
+            "id": "widgetChart",
             "type": "ms.vss-dashboards-web.widget",
-            "description": "A dashboard widget to show build metrics.",
             "targets": [
-                "ms.vss-dashboards-web.widget-catalog"
+                "ms.vss-dashboards-web.widget-catalog",
+                ".widgetConfig"
             ],
             "properties": {
                 "name": "Build Metrics",
                 "description": "A dashboard widget to show build metrics.",
-                "catalogIconUrl:": "images/icon.png",
-                "previewImageUrl": "images/preview.png",                            
-                "uri": "index.html",
+                "catalogIconUrl:": "images/bar-chart-128.png",
+                "previewImageUrl": "images/preview.png",
+                "uri": "chart.html",
                 "supportedSizes": [
                     {
                         "rowSpan": 1,
@@ -39,6 +39,16 @@
                     }
                 ],
                 "supportedScopes": ["project_team"]
+            }
+        },
+        {
+            "id": "widgetConfig",
+            "type": "ms.vss-dashboards-web.widget-configuration",
+            "targets": ["ms.vss-dashboards-web.widget-configuration"],
+            "properties": {
+                "name": "Build Metrics widget configuration",
+                "description": "Configuration for build metrics widget",
+                "uri": "config.html"
             }
         }
     ],
@@ -50,7 +60,10 @@
             "path": "scripts", "addressable": true
         },
         {
-            "path": "index.html", "addressable": true
+            "path": "chart.html", "addressable": true
+        },          
+        {
+            "path": "config.html", "addressable": true
         }
     ],
     "categories": [

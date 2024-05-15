@@ -1,5 +1,5 @@
 {
-  "name": "build-metrics-widget",
+  "name": "build-metrics-widget-extension",
   "version": "1.0.1",
   "description": "A dashboard widget to show build metrics.",
   "main": "index.js",
