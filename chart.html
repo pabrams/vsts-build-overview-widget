@@ -108,14 +108,16 @@
                                         }]
                                     };
                                     // set widget title to leaf of buildPath setting
+                                    console.log("settings.buildPath", settings.buildPath)
                                     var pathParts = settings.buildPath.split("\\");
                                     var pathLeaf = pathParts[pathParts.length - 1];
+                                    console.log("pathLeaf", pathLeaf);
                                     $('h2.title').text(pathLeaf);
-
-                                    // set tooltip to full path
-                                    $container.attr('title', settings.buildPath);
                                     $container = $('#Chart-Container');
                                     $container.empty();
+                                    // set tooltip to full path
+                                    $('h2').attr('title', settings.buildPath);
+                                    $container.attr('title', settings.buildPath);
                                     chartService.createChart($container, chartOptions);
                                     return WidgetHelpers.WidgetStatusHelper.Success();
                                 }); // end of getChartsService
