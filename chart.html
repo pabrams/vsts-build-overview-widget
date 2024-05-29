@@ -96,12 +96,12 @@
                                         "series": [{
                                             "data": [{
                                                     "name": "Failed",
-                                                    "color": "#E02D30",
+                                                    "color": "#FF0000",
                                                     "y": failedCount
                                                 },
                                                 {
                                                     "name": "Succeeded",
-                                                    "color": "#357924",
+                                                    "color": "#0000FF",
                                                     "y": succeededCount
                                                 }
                                             ]
@@ -112,7 +112,7 @@
                                     var pathParts = settings.buildPath.split("\\");
                                     var pathLeaf = pathParts[pathParts.length - 1];
                                     console.log("pathLeaf", pathLeaf);
-                                    $('h2.title').text(pathLeaf);
+                                    $('h2.title').text(pathLeaf + " (30d)");
                                     $container = $('#Chart-Container');
                                     $container.empty();
                                     // set tooltip to full path
