@@ -11,7 +11,10 @@
             left: 0;
             right: 0;
             text-align: center;
-        };
+        }
+
+        ;
+
         #Chart-Container {
             background-color: lightyellow;
         }
@@ -34,47 +37,43 @@
                             return WidgetHelpers.WidgetStatusHelper.Success();
                         }
                         var projectId = VSS.getWebContext().project.id;
+                        var transformedPath = settings.buildPath.replaceAll("/", "\\");
                         return TFS_Build_WebApi.getClient().getDefinitions(
-                            projectId, 
-                            null, 
-                            null, 
-                            null, 
-                            null, 
-                            null, 
-                            null, 
-                            null, 
-                            null, 
-                            settings.buildPath
-                        ).then(function(definitions) {
+                            projectId,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            transformedPath
+                        ).then(function (definitions) {
                             var defIds = definitions.map(a => a.id);
                             console.log("Build definition Ids:", defIds);
                             var thirtyDaysAgo = new Date();
                             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
                             return TFS_Build_WebApi.getClient().getBuilds(
-                                projectId, 
-                                defIds, 
-                                null, 
-                                null, 
+                                projectId,
+                                defIds,
+                                null,
+                                null,
                                 thirtyDaysAgo
                             ).then(function (builds) {
-                                console.log("builds:", builds);
                                 return TFS_Charts.ChartsService.getService().then(function (chartService) {
                                     var succeededCount = 0;
                                     var failedCount = 0;
                                     builds.forEach(function (build) {
                                         if (build.result === 2) {
                                             succeededCount = succeededCount + 1;
-                                        } 
+                                        }
                                         else {
                                             failedCount = failedCount + 1;
                                         }
                                     });
-                                    console.log("succeeded: " + succeededCount);
-                                    console.log("failed: " + failedCount);
-                                    console.log("number of builds: " + builds.length);
                                     var percentage = (succeededCount / builds.length * 100);
-                                    console.log("percentage: " + percentage);
-                                    $("#status").text(Math.round(percentage) + "% succeeded")
+                                    $("#status").text(Math.round(percentage) + "% succeeded");
 
                                     var chartOptions = {
                                         "chartType": "pie",
@@ -95,36 +94,43 @@
                                         },
                                         "series": [{
                                             "data": [{
-                                                    "name": "Failed",
-                                                    "color": "#FF0000",
-                                                    "y": failedCount
-                                                },
-                                                {
-                                                    "name": "Succeeded",
-                                                    "color": "#0000FF",
-                                                    "y": succeededCount
-                                                }
+                                                "name": "Failed",
+                                                "color": "#FF0000",
+                                                "y": failedCount
+                                            },
+                                            {
+                                                "name": "Succeeded",
+                                                "color": "#0000FF",
+                                                "y": succeededCount
+                                            }
                                             ]
                                         }]
                                     };
-                                    // set widget title to leaf of buildPath setting
-                                    console.log("settings.buildPath", settings.buildPath)
-                                    var pathParts = settings.buildPath.split("\\");
+                                    const context = VSS.getWebContext();
+                                    const projectName = context.project.name;
+                                    const orgUrl = context.collection.uri;
+                                    const projectUrl = orgUrl + projectName + "/";
+                                    const encodedBuildPath = settings.buildPath.replaceAll("/", "%5C");
+                                    const buildDefinitionUrl = projectUrl
+                                        + "_build?definitionScope="
+                                        + encodedBuildPath;
+                                    var pathParts = settings.buildPath.split("/");
                                     var pathLeaf = pathParts[pathParts.length - 1];
-                                    console.log("pathLeaf", pathLeaf);
-                                    $('h2.title').text(pathLeaf + " (30d)");
+                                    $("a").text(`${pathLeaf} (30d)`);
+                                    $("a").attr("href", `${buildDefinitionUrl}`);
+                                    $("a").attr("title", "Click to visit folder containing included build definitions (subfolders are not included)");
                                     $container = $('#Chart-Container');
                                     $container.empty();
-                                    // set tooltip to full path
                                     $('h2').attr('title', settings.buildPath);
                                     $container.attr('title', settings.buildPath);
                                     chartService.createChart($container, chartOptions);
                                     return WidgetHelpers.WidgetStatusHelper.Success();
                                 }); // end of getChartsService
                             },
-                            function (error) {
-                                return WidgetHelpers.WidgetStatusHelper.Failure(error.message);
-                            });
+                                function (error) {
+                                    console.error(error);
+                                    return WidgetHelpers.WidgetStatusHelper.Failure(error.message);
+                                });
                         }); // end of getDefinitions
                     } // end of getChart function
                     return {
@@ -143,9 +149,10 @@
 
 <body>
     <div class="widget">
-        <h2 class="title"></h2>
+        <h2 class="title"><a href="." title="tooltip" target="_blank">link</a></h2>
         <div id="status"></div>
         <div id="Chart-Container"></div>
     </div>
 </body>
+
 </html>
