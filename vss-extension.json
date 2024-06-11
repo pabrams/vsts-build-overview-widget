@@ -1,11 +1,11 @@
 {
     "manifestVersion": 1,
-    "id": "build-metrics-widget-extension",
-    "version": "1.0.60",
-    "name": "Metrics for pipeline folder",
-    "description": "A dashboard widget to show build metrics for a specific build definition folder.",
+    "id": "sonar-results-widget",
+    "version": "0.0.22",
+    "name": "Metrics for sonarcube results",
+    "description": "A dashboard widget to show sonarcube results.",
     "publisher": "paulabrams1",
-    "public": true,
+    "public": false,
     "targets": [
         {
             "id": "Microsoft.VisualStudio.Services"
@@ -23,12 +23,11 @@
             "id": "widgetChart",
             "type": "ms.vss-dashboards-web.widget",
             "targets": [
-                "ms.vss-dashboards-web.widget-catalog",
-                ".widgetConfig"
+                "ms.vss-dashboards-web.widget-catalog"
             ],
             "properties": {
-                "name": "Build Metrics",
-                "description": "A dashboard widget to show build metrics.",
+                "name": "Code coverage",
+                "description": "A dashboard widget to show code coverage.",
                 "catalogIconUrl:": "images/bar-chart-128.png",
                 "previewImageUrl": "images/preview.png",
                 "uri": "chart.html",
@@ -39,16 +38,6 @@
                     }
                 ],
                 "supportedScopes": ["project_team"]
-            }
-        },
-        {
-            "id": "widgetConfig",
-            "type": "ms.vss-dashboards-web.widget-configuration",
-            "targets": ["ms.vss-dashboards-web.widget-configuration"],
-            "properties": {
-                "name": "Build Metrics widget configuration",
-                "description": "Configuration for build metrics widget",
-                "uri": "config.html"
             }
         }
     ],
@@ -61,9 +50,6 @@
         },
         {
             "path": "chart.html", "addressable": true
-        },          
-        {
-            "path": "config.html", "addressable": true
         }
     ],
     "categories": [

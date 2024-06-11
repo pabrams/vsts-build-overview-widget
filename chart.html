@@ -11,9 +11,7 @@
             left: 0;
             right: 0;
             text-align: center;
-        }
-
-        ;
+        };
 
         #Chart-Container {
             background-color: lightyellow;
@@ -25,125 +23,48 @@
             usePlatformStyles: true
         });
         VSS.require(["TFS/Dashboards/WidgetHelpers", "TFS/Build/RestClient", "Charts/Services"],
-            function (WidgetHelpers, TFS_Build_WebApi, TFS_Charts) {
-                WidgetHelpers.IncludeWidgetStyles();
+           function (WidgetHelpers, TFS_Build_WebApi, TFS_Charts) {
                 VSS.register("widgetChart", function () {
-                    var getChart = function (widgetSettings) {
-                        var settings = JSON.parse(widgetSettings.customSettings.data);
-                        if (!settings || !settings.buildPath) {
-                            var $container = $('#Chart-Container');
-                            $container.empty();
-                            $container.text("Please configure a build path.");
-                            return WidgetHelpers.WidgetStatusHelper.Success();
-                        }
-                        var projectId = VSS.getWebContext().project.id;
-                        var transformedPath = settings.buildPath.replaceAll("/", "\\");
-                        return TFS_Build_WebApi.getClient().getDefinitions(
-                            projectId,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            transformedPath
-                        ).then(function (definitions) {
-                            var defIds = definitions.map(a => a.id);
-                            console.log("Build definition Ids:", defIds);
-                            var thirtyDaysAgo = new Date();
-                            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                            return TFS_Build_WebApi.getClient().getBuilds(
-                                projectId,
-                                defIds,
-                                null,
-                                null,
-                                thirtyDaysAgo
-                            ).then(function (builds) {
-                                return TFS_Charts.ChartsService.getService().then(function (chartService) {
-                                    var succeededCount = 0;
-                                    var failedCount = 0;
-                                    builds.forEach(function (build) {
-                                        if (build.result === 2) {
-                                            succeededCount = succeededCount + 1;
-                                        }
-                                        else {
-                                            failedCount = failedCount + 1;
-                                        }
-                                    });
-                                    var percentage = (succeededCount / builds.length * 100);
-                                    $("#status").text(Math.round(percentage) + "% succeeded");
-
-                                    var chartOptions = {
-                                        "chartType": "pie",
-                                        "hostOptions": {
-                                            "height": 120,
-                                            "width:": 120
-                                        },
-                                        "suppressMargin": true,
-                                        "legend": {
-                                            "enabled": false
-                                        },
-                                        "tooltip": {
-                                            "enabled": false
-                                        },
-                                        "specializedOptions": {
-                                            "showLabels": false,
-                                            "center": [46, 32]
-                                        },
-                                        "series": [{
-                                            "data": [{
-                                                "name": "Failed",
-                                                "color": "#FF0000",
-                                                "y": failedCount
-                                            },
-                                            {
-                                                "name": "Succeeded",
-                                                "color": "#0000FF",
-                                                "y": succeededCount
-                                            }
-                                            ]
-                                        }]
-                                    };
-                                    const context = VSS.getWebContext();
-                                    const projectName = context.project.name;
-                                    const orgUrl = context.collection.uri;
-                                    const projectUrl = orgUrl + projectName + "/";
-                                    const encodedBuildPath = settings.buildPath.replaceAll("/", "%5C");
-                                    const buildDefinitionUrl = projectUrl
-                                        + "_build?definitionScope="
-                                        + encodedBuildPath;
-                                    var pathParts = settings.buildPath.split("/");
-                                    var pathLeaf = pathParts[pathParts.length - 1];
-                                    $("a").text(`${pathLeaf} (30d)`);
-                                    $("a").attr("href", `${buildDefinitionUrl}`);
-                                    $("a").attr("title", "Click to visit folder containing included build definitions (subfolders are not included)");
-                                    $container = $('#Chart-Container');
-                                    $container.empty();
-                                    $('h2').attr('title', settings.buildPath);
-                                    $container.attr('title', settings.buildPath);
-                                    chartService.createChart($container, chartOptions);
-                                    return WidgetHelpers.WidgetStatusHelper.Success();
-                                }); // end of getChartsService
-                            },
-                                function (error) {
-                                    console.error(error);
-                                    return WidgetHelpers.WidgetStatusHelper.Failure(error.message);
-                                });
-                        }); // end of getDefinitions
-                    } // end of getChart function
+                    console.log("registering widgetChart");
                     return {
                         load: function (widgetSettings) {
-                            return getChart(widgetSettings);
+                            console.log("called load");
+                            // const https = require(["node:https"],  http => {
+                            const https = require("node:https");
+                            console.log('http');
+                            https.get("/api/measures/component?component=bdc-curam-benefit-group1&branch=dev-r2&metricKeys=coverage", 
+                                res => {
+                                    let data = [];
+                                    const headerDate = res.headers && res.headers.date ? res.headers.date : 'no response date';
+                                    console.log('Status Code:', res.statusCode);
+                                    console.log('Date in Response header:', headerDate);
+
+                                    res.on('data', chunk => {
+                                        data.push(chunk);
+                                    });
+                                    res.on('end', () => {
+                                        console.log('Response ended: ');
+                                        const users = JSON.parse(Buffer.concat(data).toString());
+
+                                        for(user of users) {
+                                            console.log(`Got user with id: ${user.id}, name: ${user.name}`);
+                                        }
+                                    });
+                                }
+                            );
+                            
+                            console.log("load");
+                            return WidgetHelpers.WidgetStatusHelper.Success();
                         },
                         reload: function (widgetSettings) {
-                            return getChart(widgetSettings);
+                            console.log("reload");
+                            return WidgetHelpers.WidgetStatusHelper.Success();
                         }
                     }
                 });
                 VSS.notifyLoadSucceeded();
-            });
+            }
+        );
     </script>
 </head>
 
