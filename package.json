@@ -20,5 +20,8 @@
   "homepage": "https://github.com/pabrams/vsts-build-overview-widget#readme",
   "dependencies": {
     "vss-web-extension-sdk": "^5.141.0"
+  },
+  "devDependencies": {
+    "tfx-cli": "^0.17.0"
   }
 }
