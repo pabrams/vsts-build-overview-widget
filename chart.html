@@ -7,14 +7,11 @@
         #status {
             position: absolute;
             bottom: 10px;
-            font-size: 0.70em;
+            font-size: 1em;
             left: 0;
             right: 0;
             text-align: center;
-        }
-
-        ;
-
+        };
         #Chart-Container {
             background-color: lightyellow;
         }
@@ -24,126 +21,181 @@
             explicitNotifyLoaded: true,
             usePlatformStyles: true
         });
-        VSS.require(["TFS/Dashboards/WidgetHelpers", "TFS/Build/RestClient", "Charts/Services"],
-            function (WidgetHelpers, TFS_Build_WebApi, TFS_Charts) {
-                WidgetHelpers.IncludeWidgetStyles();
+        VSS.require(
+            ["TFS/Dashboards/WidgetHelpers", "TFS/Build/RestClient", "Charts/Services"],
+            function (widgetHelp, buildClient, chartService) {
+                widgetHelp.IncludeWidgetStyles();
                 VSS.register("widgetChart", function () {
-                    var getChart = function (widgetSettings) {
-                        var settings = JSON.parse(widgetSettings.customSettings.data);
-                        if (!settings || !settings.buildPath) {
-                            var $container = $('#Chart-Container');
-                            $container.empty();
-                            $container.text("Please configure a build path.");
-                            return WidgetHelpers.WidgetStatusHelper.Success();
-                        }
-                        var projectId = VSS.getWebContext().project.id;
-                        var transformedPath = settings.buildPath.replaceAll("/", "\\");
-                        return TFS_Build_WebApi.getClient().getDefinitions(
-                            projectId,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            transformedPath
-                        ).then(function (definitions) {
-                            var defIds = definitions.map(a => a.id);
-                            console.log("Build definition Ids:", defIds);
-                            var thirtyDaysAgo = new Date();
-                            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                            return TFS_Build_WebApi.getClient().getBuilds(
-                                projectId,
-                                defIds,
-                                null,
-                                null,
-                                thirtyDaysAgo
-                            ).then(function (builds) {
-                                return TFS_Charts.ChartsService.getService().then(function (chartService) {
-                                    var succeededCount = 0;
-                                    var failedCount = 0;
-                                    builds.forEach(function (build) {
-                                        if (build.result === 2) {
-                                            succeededCount = succeededCount + 1;
-                                        }
-                                        else {
-                                            failedCount = failedCount + 1;
-                                        }
-                                    });
-                                    var percentage = (succeededCount / builds.length * 100);
-                                    $("#status").text(Math.round(percentage) + "% succeeded");
-
-                                    var chartOptions = {
-                                        "chartType": "pie",
-                                        "hostOptions": {
-                                            "height": 120,
-                                            "width:": 120
-                                        },
-                                        "suppressMargin": true,
-                                        "legend": {
-                                            "enabled": false
-                                        },
-                                        "tooltip": {
-                                            "enabled": false
-                                        },
-                                        "specializedOptions": {
-                                            "showLabels": false,
-                                            "center": [46, 32]
-                                        },
-                                        "series": [{
-                                            "data": [{
-                                                "name": "Failed",
-                                                "color": "#FF0000",
-                                                "y": failedCount
-                                            },
-                                            {
-                                                "name": "Succeeded",
-                                                "color": "#0000FF",
-                                                "y": succeededCount
-                                            }
-                                            ]
-                                        }]
-                                    };
-                                    const context = VSS.getWebContext();
-                                    const projectName = context.project.name;
-                                    const orgUrl = context.collection.uri;
-                                    const projectUrl = orgUrl + projectName + "/";
-                                    const encodedBuildPath = settings.buildPath.replaceAll("/", "%5C");
-                                    const buildDefinitionUrl = projectUrl
-                                        + "_build?definitionScope="
-                                        + encodedBuildPath;
-                                    var pathParts = settings.buildPath.split("/");
-                                    var pathLeaf = pathParts[pathParts.length - 1];
-                                    $("a").text(`${pathLeaf} (30d)`);
-                                    $("a").attr("href", `${buildDefinitionUrl}`);
-                                    $("a").attr("title", "Click to visit folder containing included build definitions (subfolders are not included)");
-                                    $container = $('#Chart-Container');
-                                    $container.empty();
-                                    $('h2').attr('title', settings.buildPath);
-                                    $container.attr('title', settings.buildPath);
-                                    chartService.createChart($container, chartOptions);
-                                    return WidgetHelpers.WidgetStatusHelper.Success();
-                                }); // end of getChartsService
-                            },
-                                function (error) {
-                                    console.error(error);
-                                    return WidgetHelpers.WidgetStatusHelper.Failure(error.message);
-                                });
-                        }); // end of getDefinitions
-                    } // end of getChart function
+                    console.log("registering widgetChart");
                     return {
-                        load: function (widgetSettings) {
-                            return getChart(widgetSettings);
+                        load: function (config) {
+                            return getChart(config, widgetHelp, buildClient, chartService);
                         },
-                        reload: function (widgetSettings) {
-                            return getChart(widgetSettings);
+                        reload: function (config) {
+                            return getChart(config, widgetHelp, buildClient, chartService);
                         }
                     }
                 });
                 VSS.notifyLoadSucceeded();
+            }
+        );
+        
+        const getChartOptions = function(succeededCount, failedCount) {
+            const chartOptions = {
+                "chartType": "pie",
+                "hostOptions": {
+                    "height": 120,
+                    "width:": 120
+                },
+                "suppressMargin": true,
+                "legend": {
+                    "enabled": false
+                },
+                "tooltip": {
+                    "enabled": false
+                },
+                "specializedOptions": {
+                    "showLabels": false,
+                    "center": [46, 32]
+                },
+                "series": [{
+                    "data": [{
+                        "name": "Failed",
+                        "color": "#FF0000",
+                        "y": failedCount
+                    },
+                    {
+                        "name": "Succeeded",
+                        "color": "#0000FF",
+                        "y": succeededCount
+                    }]
+                }]
+            };
+            return chartOptions;
+        };
+
+        const getDefinitionsInFolderRecursively = function (buildApi, projectId, pipelinePath, runningList){
+            console.log("getDefinitionsInFolderRecursively", pipelinePath);
+            return getDefinitionsInFolder (buildApi, projectId, pipelinePath)
+            .then (function (definitions){
+                console.log("defs in " + pipelinePath, definitions);
+                runningList.push(...definitions);
+                console.log("new list", runningList);
+                return buildApi.getClient().getFolders(projectId, pipelinePath);
+            }).then(function (folders) {
+                console.log("folders in " + pipelinePath, folders);
+                // filter out the entry for self
+                folders = folders.filter(function( obj ) {
+                    return obj.path !== pipelinePath;
+                });
+                const promiseArray = folders.map ( folder => {
+                    return getDefinitionsInFolderRecursively (
+                        buildApi,
+                        projectId,
+                        folder.path,
+                        runningList
+                    );
+                });
+                console.log("Doing promise.all");
+                return Promise.all(promiseArray).then(function (defs){
+                    return defs.flat();
+                });
+            }).catch(function (error) {
+                console.error(error);
             });
+        }
+
+        const getDefinitionsInFolder = function (buildApi, projectId, pipelinePath){
+            console.log("getDefinitionsInFolder", pipelinePath);
+            const tfsBuildClient = buildApi.getClient();
+            return tfsBuildClient.getDefinitions(
+                projectId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                pipelinePath
+            );
+        }
+
+        var getChart = function (widgetSettings, WidgetHelpers, TFS_Build_WebApi, TFS_Charts) {
+            var succeededCount = 0;
+            var failedCount = 0;
+            console.log("getChart");
+            var settings = JSON.parse(widgetSettings.customSettings.data);
+            if (!settings || !settings.buildPath) {
+                var $container = $('#Chart-Container');
+                $container.empty();
+                $container.text("Please configure a build path.");
+                return WidgetHelpers.WidgetStatusHelper.Success();
+            }
+            var projectId = VSS.getWebContext().project.id;
+            var transformedPath = settings.buildPath.replaceAll("/", "\\");
+            console.log("transormedPath", transformedPath);
+            return getDefinitionsInFolderRecursively (
+                TFS_Build_WebApi,
+                projectId,
+                transformedPath,
+                []
+            ).then (function (definitions) {
+                console.log("definitions " + transformedPath, definitions);
+                var defIds = definitions.map(a => a.id);
+                console.log("Build definition Ids for " + transformedPath, defIds);
+                var thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                return TFS_Build_WebApi.getClient().getBuilds(
+                    projectId,
+                    defIds,
+                    null,
+                    null,
+                    thirtyDaysAgo
+                );
+            }).then(function (builds) {
+                console.log("builds " + transformedPath, builds);
+                builds.forEach(function (build) {
+                    if (build.result === 2) {
+                        succeededCount = succeededCount + 1;
+                    }
+                    else {
+                        failedCount = failedCount + 1;
+                    }
+                });
+                const succeeded = (succeededCount / builds.length * 100);
+                $("#status").text(Math.round(succeeded) + "% succeeded");
+                console.log("percent succeeded", succeeded);
+                const context = VSS.getWebContext();
+                const projectName = context.project.name;
+                const orgUrl = context.collection.uri;
+                const projectUrl = orgUrl + projectName + "/";
+                const encodedBuildPath = settings.buildPath.replaceAll("/", "%5C");
+                const buildDefinitionUrl = projectUrl
+                    + "_build?definitionScope="
+                    + encodedBuildPath;
+                const pathParts = settings.buildPath.split("/");
+                const pathLeaf = pathParts[pathParts.length - 1];
+                console.log("pathLeaf " + transformedPath, pathLeaf);
+                $("a").text(`${pathLeaf} (30d)`);
+                $("a").attr("href", `${buildDefinitionUrl}`);
+                $("a").attr("title", "Click to visit folder containing included build definitions (subfolders are included)");
+                $container = $('#Chart-Container');
+                $container.empty();
+                $('h2').attr('title', settings.buildPath);
+                $container.attr('title', settings.buildPath);
+                return TFS_Charts.ChartsService.getService();
+            }).then(function (chartService) {
+                const chartOptions = getChartOptions(succeededCount, failedCount);
+                chartService.createChart($container, chartOptions);
+                return WidgetHelpers.WidgetStatusHelper.Success();
+            }).catch(function (error) {
+                console.error(error);
+                return WidgetHelpers.WidgetStatusHelper.Failure(error.message);
+            }); // end of getBuilds
+        }
+
     </script>
 </head>
 
