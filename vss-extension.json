@@ -1,11 +1,11 @@
 {
     "manifestVersion": 1,
-    "id": "build-metrics-widget-extension",
-    "version": "1.0.60",
+    "id": "build-metrics-widget-extension-private",
+    "version": "1.0.70",
     "name": "Metrics for pipeline folder",
     "description": "A dashboard widget to show build metrics for a specific build definition folder.",
-    "publisher": "paulabrams1",
-    "public": true,
+    "publisher": "pabramshrsdc",
+    "public": false,
     "targets": [
         {
             "id": "Microsoft.VisualStudio.Services"
