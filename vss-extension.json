@@ -1,7 +1,7 @@
 {
     "manifestVersion": 1,
     "id": "build-metrics-widget-extension-private1",
-    "version": "1.0.84",
+    "version": "1.0.114",
     "name": "Metrics for pipeline folder",
     "description": "A dashboard widget to show build metrics for a specific build definition folder.",
     "publisher": "paulabrams1",
