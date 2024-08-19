@@ -12,6 +12,9 @@
             right: 0;
             text-align: center;
         };
+        a {
+            font-size: 0.8em;
+        };
         #Chart-Container {
             background-color: lightyellow;
         }
@@ -175,9 +178,7 @@
             const buildDefinitionUrl = projectUrl
                 + "_build?definitionScope="
                 + encodedBuildPath;
-            const pathParts = settings.buildPath.split("/");
-            const pathLeaf = pathParts[pathParts.length - 1];
-            $("a").text(`${pathLeaf} (30d)`);
+            $("a").text(`${settings.buildPath} (30d)`);
             $("a").attr("href", `${buildDefinitionUrl}`);
             $("a").attr("title", "Click to visit folder containing included build definitions (subfolders are included)");
             $container = $('#Chart-Container');
