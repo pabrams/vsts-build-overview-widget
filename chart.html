@@ -29,7 +29,6 @@
                 // Register the widget as a function returning an object containing two async functions called
                 // load and reload.
                 VSS.register("widgetChart", () => {
-                    console.log("registering widgetChart");
                     return {
                         load: async (config) => {
                             console.log("loading");
@@ -47,7 +46,6 @@
 
         const loadWidget = async (configuration, wHelp, buildApi, cService) => {
             try{
-                console.log("loadWidget");
                 return await getChart(configuration, wHelp, buildApi, cService );
             }
             catch (error){
