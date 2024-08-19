@@ -17,29 +17,46 @@
         }
     </style>
     <script type="text/javascript">
+        // Initialize the extension framework, then import libraries and register the widget.
         VSS.init({
             explicitNotifyLoaded: true,
             usePlatformStyles: true
         });
         VSS.require(
             ["TFS/Dashboards/WidgetHelpers", "TFS/Build/RestClient", "Charts/Services"],
-            function (widgetHelp, buildClient, chartService) {
+            (widgetHelp, buildClient, chartService) => {
                 widgetHelp.IncludeWidgetStyles();
-                VSS.register("widgetChart", function () {
+                // Register the widget as a function returning an object containing two async functions called
+                // load and reload.
+                VSS.register("widgetChart", () => {
+                    console.log("registering widgetChart");
                     return {
-                        load: async function (config) {
-                            return getChart(config, widgetHelp, buildClient, chartService);
+                        load: async (config) => {
+                            console.log("loading");
+                            return await loadWidget(config, widgetHelp, buildClient, chartService);
                         },
-                        reload: async function (config) {
-                            return getChart(config, widgetHelp, buildClient, chartService);
+                        reload: async (config) => {
+                            console.log("reloading");
+                            return await loadWidget(config, widgetHelp, buildClient, chartService);
                         }
                     }
                 });
                 VSS.notifyLoadSucceeded();
             }
         );
-        
-        const getChartOptions = function(succeededCount, failedCount) {
+
+        const loadWidget = async (configuration, wHelp, buildApi, cService) => {
+            try{
+                console.log("loadWidget");
+                return await getChart(configuration, wHelp, buildApi, cService );
+            }
+            catch (error){
+                console.error(error);
+            }
+        }
+
+        // Get some options for the chart, calculated based on the number of successful and failed builds.
+        const getChartOptions = (succeededCount, failedCount) => {
             const chartOptions = {
                 "chartType": "pie",
                 "hostOptions": {
@@ -73,11 +90,12 @@
             return chartOptions;
         };
 
-        const getDefinitionsInFolderRecursively = async function (buildApi, projectId, pipelinePath){
+        // Get an array containing all build definitions found in given folder including all subfolders.
+        const getDefinitionsInFolderRecursively = async (buildApi, projectId, pipelinePath) => {
             const defs = await getDefinitionsInFolder (buildApi, projectId, pipelinePath);
             const folders = await buildApi.getClient().getFolders(projectId, pipelinePath);
             // filter out the entry for self
-            const foldersFiltered = await folders.filter(function( obj ) {
+            const foldersFiltered = await folders.filter((obj) => {
                 return obj.path !== pipelinePath;
             });
             const moredefs = await Promise.all(foldersFiltered.map(async (folder) => {
@@ -91,8 +109,8 @@
             return defs.concat(moredefs.flat(99)).flat(99);
         }
 
-        const getDefinitionsInFolder = async function (buildApi, projectId, pipelinePath){
-            console.log("getDefinitionsInFolder", pipelinePath);
+        // Get a promise that resolves to an array of build definitions in specified folder, not including subfolders.
+        const getDefinitionsInFolder = async (buildApi, projectId, pipelinePath) => {
             const tfsBuildClient = buildApi.getClient();
             return tfsBuildClient.getDefinitions(
                 projectId,
@@ -108,77 +126,70 @@
             );
         }
 
-        const getChart = async function (widgetSettings, WidgetHelpers, TFS_Build_WebApi, TFS_Charts) {
-            var succeededCount = 0;
-            var failedCount = 0;
-            var settings = JSON.parse(widgetSettings.customSettings.data);
+        const getChart = async (widgetSettings, WidgetHelpers, TFS_Build_WebApi, TFS_Charts) => {
+            let $container = $('#Chart-Container');
+            const settings = JSON.parse(widgetSettings.customSettings.data);
             if (!settings || !settings.buildPath) {
-                var $container = $('#Chart-Container');
                 $container.empty();
                 $container.text("Please configure a build path.");
                 return WidgetHelpers.WidgetStatusHelper.Success();
             }
             const projectId = VSS.getWebContext().project.id;
             const transformedPath = settings.buildPath.replaceAll("/", "\\");
-            return getDefinitionsInFolderRecursively (
+            const definitions = await getDefinitionsInFolderRecursively (
                 TFS_Build_WebApi,
                 projectId,
                 transformedPath
-            ).then (function (definitions) {
-                const defIds = definitions.map(a => a.id);
-                const uniqueDefs = defIds.filter(function(item, pos) {
-                    return defIds.indexOf(item) == pos;
-                });
-                console.log("Build definition Ids for " + transformedPath, uniqueDefs);
-                var thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                return TFS_Build_WebApi.getClient().getBuilds(
-                    projectId,
-                    uniqueDefs,
-                    null,
-                    null,
-                    thirtyDaysAgo
-                );
-            }).then(function (builds) {
-                console.log("builds " + transformedPath, builds);
-                builds.forEach(function (build) {
-                    if (build.result === 2) {
-                        succeededCount = succeededCount + 1;
-                    }
-                    else {
-                        failedCount = failedCount + 1;
-                    }
-                });
-                const succeeded = (succeededCount / builds.length * 100);
-                $("#status").text(Math.round(succeeded) + "% succeeded");
-                console.log("percent succeeded", succeeded);
-                const context = VSS.getWebContext();
-                const projectName = context.project.name;
-                const orgUrl = context.collection.uri;
-                const projectUrl = orgUrl + projectName + "/";
-                const encodedBuildPath = settings.buildPath.replaceAll("/", "%5C");
-                const buildDefinitionUrl = projectUrl
-                    + "_build?definitionScope="
-                    + encodedBuildPath;
-                const pathParts = settings.buildPath.split("/");
-                const pathLeaf = pathParts[pathParts.length - 1];
-                console.log("pathLeaf " + transformedPath, pathLeaf);
-                $("a").text(`${pathLeaf} (30d)`);
-                $("a").attr("href", `${buildDefinitionUrl}`);
-                $("a").attr("title", "Click to visit folder containing included build definitions (subfolders are included)");
-                $container = $('#Chart-Container');
-                $container.empty();
-                $('h2').attr('title', settings.buildPath);
-                $container.attr('title', settings.buildPath);
-                return TFS_Charts.ChartsService.getService();
-            }).then(function (chartService) {
-                const chartOptions = getChartOptions(succeededCount, failedCount);
-                chartService.createChart($container, chartOptions);
-                return WidgetHelpers.WidgetStatusHelper.Success();
-            }).catch(function (error) {
-                console.error(error);
-                return WidgetHelpers.WidgetStatusHelper.Failure(error.message);
-            }); // end of getBuilds
+            );
+            const defIds = definitions.map(a => a.id);
+            const uniqueBuildDefinitions = defIds.filter((item, pos) => {
+                return defIds.indexOf(item) == pos;
+            });
+            console.log("Build definition Ids for " + transformedPath, uniqueBuildDefinitions);
+            let thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const builds = await TFS_Build_WebApi.getClient().getBuilds(
+                projectId,
+                uniqueBuildDefinitions,
+                null,
+                null,
+                thirtyDaysAgo
+            );
+            console.log("builds " + transformedPath, builds);
+            let succeededCount = 0;
+            let failedCount = 0;
+            // let data = {succeededCount: 0, failedCount: 0};
+            builds.forEach((build) => {
+                if (build.result === 2) {
+                    succeededCount = succeededCount + 1;
+                }
+                else {
+                    failedCount = failedCount + 1;
+                }
+            });
+            const succeeded = (succeededCount / builds.length * 100);
+            $("#status").text(Math.round(succeeded) + "% succeeded");
+            const context = VSS.getWebContext();
+            const projectName = context.project.name;
+            const orgUrl = context.collection.uri;
+            const projectUrl = orgUrl + projectName + "/";
+            const encodedBuildPath = settings.buildPath.replaceAll("/", "%5C");
+            const buildDefinitionUrl = projectUrl
+                + "_build?definitionScope="
+                + encodedBuildPath;
+            const pathParts = settings.buildPath.split("/");
+            const pathLeaf = pathParts[pathParts.length - 1];
+            $("a").text(`${pathLeaf} (30d)`);
+            $("a").attr("href", `${buildDefinitionUrl}`);
+            $("a").attr("title", "Click to visit folder containing included build definitions (subfolders are included)");
+            $container = $('#Chart-Container');
+            $container.empty();
+            $('h2').attr('title', settings.buildPath);
+            $container.attr('title', settings.buildPath);
+            const chartService = await TFS_Charts.ChartsService.getService();
+            const chartOptions = getChartOptions(succeededCount, failedCount);
+            chartService.createChart($container, chartOptions);
+            return WidgetHelpers.WidgetStatusHelper.Success();
         }
 
     </script>
