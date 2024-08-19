@@ -26,12 +26,11 @@
             function (widgetHelp, buildClient, chartService) {
                 widgetHelp.IncludeWidgetStyles();
                 VSS.register("widgetChart", function () {
-                    console.log("registering widgetChart");
                     return {
-                        load: function (config) {
+                        load: async function (config) {
                             return getChart(config, widgetHelp, buildClient, chartService);
                         },
-                        reload: function (config) {
+                        reload: async function (config) {
                             return getChart(config, widgetHelp, buildClient, chartService);
                         }
                     }
@@ -74,38 +73,25 @@
             return chartOptions;
         };
 
-        const getDefinitionsInFolderRecursively = function (buildApi, projectId, pipelinePath, runningList){
-            console.log("getDefinitionsInFolderRecursively", pipelinePath);
-            return getDefinitionsInFolder (buildApi, projectId, pipelinePath)
-            .then (function (definitions){
-                console.log("defs in " + pipelinePath, definitions);
-                runningList.push(...definitions);
-                console.log("new list", runningList);
-                return buildApi.getClient().getFolders(projectId, pipelinePath);
-            }).then(function (folders) {
-                console.log("folders in " + pipelinePath, folders);
-                // filter out the entry for self
-                folders = folders.filter(function( obj ) {
-                    return obj.path !== pipelinePath;
-                });
-                const promiseArray = folders.map ( folder => {
-                    return getDefinitionsInFolderRecursively (
-                        buildApi,
-                        projectId,
-                        folder.path,
-                        runningList
-                    );
-                });
-                console.log("Doing promise.all");
-                return Promise.all(promiseArray).then(function (defs){
-                    return defs.flat();
-                });
-            }).catch(function (error) {
-                console.error(error);
+        const getDefinitionsInFolderRecursively = async function (buildApi, projectId, pipelinePath){
+            const defs = await getDefinitionsInFolder (buildApi, projectId, pipelinePath);
+            const folders = await buildApi.getClient().getFolders(projectId, pipelinePath);
+            // filter out the entry for self
+            const foldersFiltered = await folders.filter(function( obj ) {
+                return obj.path !== pipelinePath;
             });
+            const moredefs = await Promise.all(foldersFiltered.map(async (folder) => {
+                const partOfMoreDefs = await getDefinitionsInFolderRecursively (
+                    buildApi,
+                    projectId,
+                    folder.path
+                );
+                return partOfMoreDefs.flat(99);
+            }));
+            return defs.concat(moredefs.flat(99)).flat(99);
         }
 
-        const getDefinitionsInFolder = function (buildApi, projectId, pipelinePath){
+        const getDefinitionsInFolder = async function (buildApi, projectId, pipelinePath){
             console.log("getDefinitionsInFolder", pipelinePath);
             const tfsBuildClient = buildApi.getClient();
             return tfsBuildClient.getDefinitions(
@@ -122,10 +108,9 @@
             );
         }
 
-        var getChart = function (widgetSettings, WidgetHelpers, TFS_Build_WebApi, TFS_Charts) {
+        const getChart = async function (widgetSettings, WidgetHelpers, TFS_Build_WebApi, TFS_Charts) {
             var succeededCount = 0;
             var failedCount = 0;
-            console.log("getChart");
             var settings = JSON.parse(widgetSettings.customSettings.data);
             if (!settings || !settings.buildPath) {
                 var $container = $('#Chart-Container');
@@ -133,23 +118,23 @@
                 $container.text("Please configure a build path.");
                 return WidgetHelpers.WidgetStatusHelper.Success();
             }
-            var projectId = VSS.getWebContext().project.id;
-            var transformedPath = settings.buildPath.replaceAll("/", "\\");
-            console.log("transormedPath", transformedPath);
+            const projectId = VSS.getWebContext().project.id;
+            const transformedPath = settings.buildPath.replaceAll("/", "\\");
             return getDefinitionsInFolderRecursively (
                 TFS_Build_WebApi,
                 projectId,
-                transformedPath,
-                []
+                transformedPath
             ).then (function (definitions) {
-                console.log("definitions " + transformedPath, definitions);
-                var defIds = definitions.map(a => a.id);
-                console.log("Build definition Ids for " + transformedPath, defIds);
+                const defIds = definitions.map(a => a.id);
+                const uniqueDefs = defIds.filter(function(item, pos) {
+                    return defIds.indexOf(item) == pos;
+                });
+                console.log("Build definition Ids for " + transformedPath, uniqueDefs);
                 var thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
                 return TFS_Build_WebApi.getClient().getBuilds(
                     projectId,
-                    defIds,
+                    uniqueDefs,
                     null,
                     null,
                     thirtyDaysAgo
