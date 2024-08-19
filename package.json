@@ -4,7 +4,8 @@
   "description": "A dashboard widget to show build metrics.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "package": "tfx extension create --rev-version"
   },
   "repository": {
     "type": "git",

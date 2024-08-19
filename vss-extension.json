@@ -1,10 +1,10 @@
 {
     "manifestVersion": 1,
-    "id": "sonar-results-widget",
-    "version": "0.0.22",
+    "id": "sonar-results-links",
+    "version": "0.0.24",
     "name": "Metrics for sonarcube results",
     "description": "A dashboard widget to show sonarcube results.",
-    "publisher": "paulabrams1",
+    "publisher": "pabramshrsdc",
     "public": false,
     "targets": [
         {
